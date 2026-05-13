@@ -2,9 +2,7 @@ FROM golang:1.26.3-alpine AS build_deps
 
 WORKDIR /workspace
 
-COPY go.mod .
-
-COPY go.sum .
+COPY go.mod go.sum ./
 
 RUN go mod download
 
