@@ -14,6 +14,6 @@ RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
 FROM gcr.io/distroless/static:nonroot
 
-COPY --from=build /workspace/webhook /usr/local/bin/webhook
+COPY --from=build /workspace/webhook /webhook
 
-ENTRYPOINT ["webhook"]
+ENTRYPOINT ["/webhook"]
