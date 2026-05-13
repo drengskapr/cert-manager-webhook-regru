@@ -1,7 +1,5 @@
 FROM golang:1.26.3-alpine AS build_deps
 
-RUN apk add --no-cache git
-
 WORKDIR /workspace
 
 COPY go.mod .
