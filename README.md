@@ -51,7 +51,6 @@ git clone https://github.com/drengskapr/cert-manager-webhook-regru.git
 
 helm --namespace cert-manager upgrade --install regru-webhook \
   ./cert-manager-webhook-regru/deploy/helm/regru-webhook/ \
-  --set groupName="acme.regru.ru"
 ```
 
 ## Configuration
