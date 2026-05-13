@@ -47,7 +47,7 @@ For alternative ways to create secrets, see the [Kubernetes documentation](https
 ### 2. Deploy the webhook
 
 ```bash
-git clone https://github.com/daloman/cert-manager-webhook-regru.git
+git clone https://github.com/drengskapr/cert-manager-webhook-regru.git
 
 helm --namespace cert-manager upgrade --install regru-webhook \
   ./cert-manager-webhook-regru/deploy/helm/regru-webhook/ \
