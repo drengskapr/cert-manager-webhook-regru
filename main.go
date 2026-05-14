@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	regruapi "github.com/daloman/regru-api-go/zonecontrol"
+	regru "github.com/drengskapr/regru-api-go"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -101,12 +101,13 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	subdomain := ch.ResolvedFQDN
 	content := ch.Key
-	log.Infof("Add %v TXT resource record for %v domain with the following content %v", domain, zone, content)
-	regruapi.AddTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, content)
-	return nil
+	log.Infof("Add TXT resource record %v in zone %v", subdomain, zone)
+	client := regru.New(apiCredentials["login"], apiCredentials["password"])
+	_, err = client.AddTxtRr(zone, subdomain, content)
+	return err
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -120,12 +121,13 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	subdomain := ch.ResolvedFQDN
 	content := ch.Key
-	log.Infof("Delete %v TXT resource record for %v domain with following content %v", domain, zone, content)
-	regruapi.RmTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, "TXT", content)
-	return nil
+	log.Infof("Delete TXT resource record %v in zone %v", subdomain, zone)
+	client := regru.New(apiCredentials["login"], apiCredentials["password"])
+	_, err = client.RmRr(zone, subdomain, "TXT", content)
+	return err
 }
 
 // Initialize will be called when the webhook first starts.
