@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/cert-manager/cert-manager v1.19.4
-	github.com/daloman/regru-api-go v0.1.0-alpha.1
+	github.com/drengskapr/regru-api-go v0.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.4
 	k8s.io/apiextensions-apiserver v0.36.1
