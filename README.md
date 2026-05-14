@@ -107,12 +107,41 @@ spec:
 
 ## Running the test suite
 
-All DNS providers must run the DNS01 provider conformance testing suite to ensure correct behaviour with cert-manager.
+### Unit tests
 
-Set the `TEST_ZONE_NAME` environment variable to a domain you control via REG.RU, then run:
+`subdomain_test.go` contains fast, dependency-free unit tests and runs without any environment setup:
 
 ```bash
-TEST_ZONE_NAME=example.com. make test
+go test ./...
 ```
 
-The test configuration lives in [`testdata/my-custom-solver/config.json`](testdata/my-custom-solver/config.json). See [`testdata/my-custom-solver/README.md`](testdata/my-custom-solver/README.md) for setup instructions.
+### Integration / conformance tests
+
+The integration test (`main_test.go`) runs the cert-manager DNS01 conformance suite against a real REG.RU zone. It requires:
+
+- A domain you control that is hosted on REG.RU
+- REG.RU API credentials with access allowed from your machine's IP
+
+**Credentials** — choose one of:
+
+1. **Environment variables (recommended):** the test writes `testdata/regru/manifests/secret.yaml` automatically:
+
+   ```bash
+   export TEST_ZONE_NAME=example.com.
+   export TEST_REGRU_LOGIN=your-login
+   export TEST_REGRU_PASSWORD=your-password
+   make test
+   ```
+
+2. **Manual secret file:** copy the example and fill in your credentials, then run without the login/password vars:
+
+   ```bash
+   cp testdata/regru/manifests/secret.yaml.example \
+      testdata/regru/manifests/secret.yaml
+   # edit secret.yaml and set login / password
+   TEST_ZONE_NAME=example.com. make test
+   ```
+
+The conformance fixture uses `1.1.1.1:53` for DNS propagation checks by default. Override with `TEST_DNS_SERVER=<host:port>` if needed.
+
+The solver config lives in [`testdata/regru/config.json`](testdata/regru/config.json).

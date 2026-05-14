@@ -9,8 +9,8 @@ import (
 
 	regru "github.com/drengskapr/regru-api-go"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"log/slog"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
@@ -24,7 +24,7 @@ import (
 var GroupName = os.Getenv("GROUP_NAME")
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 }
 
 func main() {
@@ -107,7 +107,7 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	content := ch.Key
-	log.Infof("Add TXT resource record %v in zone %v", subdomain, zone)
+	slog.Info("adding TXT record", "subdomain", subdomain, "zone", zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
 	_, err = client.AddTxtRr(zone, subdomain, content)
 	return err
@@ -130,7 +130,7 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	content := ch.Key
-	log.Infof("Delete TXT resource record %v in zone %v", subdomain, zone)
+	slog.Info("deleting TXT record", "subdomain", subdomain, "zone", zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
 	_, err = client.RmRr(zone, subdomain, "TXT", content)
 	return err
