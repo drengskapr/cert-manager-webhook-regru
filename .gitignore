@@ -23,3 +23,5 @@ docs/superpowers
 
 # Ignore real API credentials file
 testdata/regru/manifests/secret.yaml
+
+.envtest-assets/
