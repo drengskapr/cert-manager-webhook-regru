@@ -29,7 +29,7 @@ func TestConformance(t *testing.T) {
 
 	dnsServer := os.Getenv("TEST_DNS_SERVER")
 	if dnsServer == "" {
-		dnsServer = "127.0.0.53:53"
+		dnsServer = "1.1.1.1:53"
 	}
 
 	fixture := dns.NewFixture(
@@ -38,7 +38,6 @@ func TestConformance(t *testing.T) {
 		dns.SetManifestPath("testdata/regru"),
 		dns.SetStrict(false),
 		dns.SetDNSServer(dnsServer),
-		dns.SetUseAuthoritative(false),
 		dns.SetPropagationLimit(4*time.Minute),
 	)
 	fixture.RunConformance(t)
