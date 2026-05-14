@@ -102,8 +102,10 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
-	fqdn := strings.TrimRight(ch.ResolvedFQDN, ".")
-	subdomain := strings.TrimSuffix(fqdn, "."+zone)
+	subdomain, err := subdomainFromFQDN(ch.ResolvedFQDN, ch.ResolvedZone)
+	if err != nil {
+		return err
+	}
 	content := ch.Key
 	log.Infof("Add TXT resource record %v in zone %v", subdomain, zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
@@ -123,8 +125,10 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
-	fqdn := strings.TrimRight(ch.ResolvedFQDN, ".")
-	subdomain := strings.TrimSuffix(fqdn, "."+zone)
+	subdomain, err := subdomainFromFQDN(ch.ResolvedFQDN, ch.ResolvedZone)
+	if err != nil {
+		return err
+	}
 	content := ch.Key
 	log.Infof("Delete TXT resource record %v in zone %v", subdomain, zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
@@ -167,6 +171,18 @@ func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// subdomainFromFQDN extracts the subdomain from an FQDN within a zone.
+// Returns an error if the FQDN is not within the zone (apex case).
+func subdomainFromFQDN(fqdn, zone string) (string, error) {
+	z := strings.TrimRight(zone, ".")
+	f := strings.TrimRight(fqdn, ".")
+	sub := strings.TrimSuffix(f, "."+z)
+	if sub == f {
+		return "", fmt.Errorf("resolved FQDN %q is not within zone %q", fqdn, zone)
+	}
+	return sub, nil
 }
 
 func (c *regruDNSProviderSolver) getDNSApiCredentials(ch *v1alpha1.ChallengeRequest) (map[string]string, error) {
