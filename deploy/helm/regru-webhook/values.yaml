@@ -6,15 +6,15 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.mycompany.com
+groupName: acme.reg.ru
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
-  repository: daloman/cert-manager-webhook-regru
-  tag: "0.3.1-beta"
+  repository: drengskapr/cert-manager-webhook-regru
+  tag: ""
   pullPolicy: IfNotPresent
 
 nameOverride: ""

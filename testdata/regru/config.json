@@ -1,0 +1,10 @@
+{
+  "apiLoginRef": {
+    "name": "regru-api-creds",
+    "key": "login"
+  },
+  "apiPasswordRef": {
+    "name": "regru-api-creds",
+    "key": "password"
+  }
+}

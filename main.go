@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	regruapi "github.com/daloman/regru-api-go/zonecontrol"
+	regru "github.com/drengskapr/regru-api-go"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"log/slog"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
@@ -24,7 +24,7 @@ import (
 var GroupName = os.Getenv("GROUP_NAME")
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 }
 
 func main() {
@@ -101,12 +101,16 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	subdomain, err := subdomainFromFQDN(ch.ResolvedFQDN, ch.ResolvedZone)
+	if err != nil {
+		return err
+	}
 	content := ch.Key
-	log.Infof("Add %v TXT resource record for %v domain with the following content %v", domain, zone, content)
-	regruapi.AddTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, content)
-	return nil
+	slog.Info("adding TXT record", "subdomain", subdomain, "zone", zone)
+	client := regru.New(apiCredentials["login"], apiCredentials["password"])
+	_, err = client.AddTxtRr(zone, subdomain, content)
+	return err
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -120,12 +124,16 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
-	domain := ch.ResolvedFQDN
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
+	subdomain, err := subdomainFromFQDN(ch.ResolvedFQDN, ch.ResolvedZone)
+	if err != nil {
+		return err
+	}
 	content := ch.Key
-	log.Infof("Delete %v TXT resource record for %v domain with following content %v", domain, zone, content)
-	regruapi.RmTxtRr(apiCredentials["login"], apiCredentials["password"], zone, domain, "TXT", content)
-	return nil
+	slog.Info("deleting TXT record", "subdomain", subdomain, "zone", zone)
+	client := regru.New(apiCredentials["login"], apiCredentials["password"])
+	_, err = client.RmRr(zone, subdomain, "TXT", content)
+	return err
 }
 
 // Initialize will be called when the webhook first starts.
@@ -163,6 +171,18 @@ func loadConfig(cfgJSON *extapi.JSON) (regruDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// subdomainFromFQDN extracts the subdomain from an FQDN within a zone.
+// Returns an error if the FQDN is not within the zone (apex case).
+func subdomainFromFQDN(fqdn, zone string) (string, error) {
+	z := strings.TrimRight(zone, ".")
+	f := strings.TrimRight(fqdn, ".")
+	sub := strings.TrimSuffix(f, "."+z)
+	if sub == f {
+		return "", fmt.Errorf("resolved FQDN %q is not within zone %q", fqdn, zone)
+	}
+	return sub, nil
 }
 
 func (c *regruDNSProviderSolver) getDNSApiCredentials(ch *v1alpha1.ChallengeRequest) (map[string]string, error) {

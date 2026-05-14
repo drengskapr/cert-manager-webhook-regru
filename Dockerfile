@@ -1,12 +1,8 @@
-FROM golang:1.19-alpine AS build_deps
-
-RUN apk add --no-cache git
+FROM golang:1.26.3-alpine AS build_deps
 
 WORKDIR /workspace
 
-COPY go.mod .
-
-COPY go.sum .
+COPY go.mod go.sum ./
 
 RUN go mod download
 
@@ -16,10 +12,8 @@ COPY . .
 
 RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
-FROM alpine:3.9
+FROM gcr.io/distroless/static:nonroot
 
-RUN apk add --no-cache ca-certificates
+COPY --from=build /workspace/webhook /webhook
 
-COPY --from=build /workspace/webhook /usr/local/bin/webhook
-
-ENTRYPOINT ["webhook"]
+ENTRYPOINT ["/webhook"]

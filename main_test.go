@@ -1,41 +1,63 @@
+//go:build integration
+
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/cert-manager/cert-manager/test/acme/dns"
-
-	"github.com/daloman/cert-manager-webhook-regru/example"
+	dns "github.com/cert-manager/cert-manager/test/acme"
 )
 
-var (
-	zone = os.Getenv("TEST_ZONE_NAME")
-)
+func TestConformance(t *testing.T) {
+	zone := os.Getenv("TEST_ZONE_NAME")
+	if zone == "" {
+		t.Skip("TEST_ZONE_NAME not set")
+	}
 
-func TestRunsSuite(t *testing.T) {
-	// The manifest path should contain a file named config.json that is a
-	// snippet of valid configuration that should be included on the
-	// ChallengeRequest passed as part of the test cases.
-	//
+	if login := os.Getenv("TEST_REGRU_LOGIN"); login != "" {
+		password := os.Getenv("TEST_REGRU_PASSWORD")
+		if password == "" {
+			t.Fatal("TEST_REGRU_LOGIN is set but TEST_REGRU_PASSWORD is empty")
+		}
+		if err := writeSecretManifest(login, password); err != nil {
+			t.Fatalf("failed to write credentials manifest: %v", err)
+		}
+	}
 
-	// Uncomment the below fixture when implementing your custom DNS provider
-	//fixture := dns.NewFixture(&customDNSProviderSolver{},
-	//	dns.SetResolvedZone(zone),
-	//	dns.SetAllowAmbientCredentials(false),
-	//	dns.SetManifestPath("testdata/my-custom-solver"),
-	//	dns.SetBinariesPath("_test/kubebuilder/bin"),
-	//)
-	solver := example.New("59351")
-	fixture := dns.NewFixture(solver,
-		dns.SetResolvedZone("example.com."),
-		dns.SetManifestPath("testdata/my-custom-solver"),
-		dns.SetDNSServer("127.0.0.1:59351"),
-		dns.SetUseAuthoritative(false),
+	dnsServer := os.Getenv("TEST_DNS_SERVER")
+	if dnsServer == "" {
+		dnsServer = "1.1.1.1:53"
+	}
+
+	fixture := dns.NewFixture(
+		&regruDNSProviderSolver{},
+		dns.SetResolvedZone(zone),
+		dns.SetManifestPath("testdata/regru"),
+		dns.SetStrict(false),
+		dns.SetDNSServer(dnsServer),
+		dns.SetPropagationLimit(4*time.Minute),
 	)
-	//need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
-	//fixture.RunConformance(t)
-	fixture.RunBasic(t)
-	fixture.RunExtended(t)
+	fixture.RunConformance(t)
+}
 
+func writeSecretManifest(login, password string) error {
+	const tmpl = `apiVersion: v1
+kind: Secret
+metadata:
+  name: regru-api-creds
+stringData:
+  login: %q
+  password: %q
+`
+	if err := os.MkdirAll("testdata/regru/manifests", 0700); err != nil {
+		return err
+	}
+	return os.WriteFile(
+		"testdata/regru/manifests/secret.yaml",
+		[]byte(fmt.Sprintf(tmpl, login, password)),
+		0600,
+	)
 }

@@ -1,15 +1,21 @@
-# REG.RU provider DNS01 challenge solver
+# cert-manager-webhook-regru
 
+cert-manager DNS01 webhook solver for the [REG.RU](https://www.reg.ru/) DNS provider.
 
-## REG.RU API documentation
+## Prerequisites
 
-API documentation https://www.reg.ru/reseller/api2doc#common
+- [cert-manager](https://cert-manager.io/docs/installation/) installed in your cluster
+- `kubectl` and `helm` available locally
+- A REG.RU account with API access enabled from your cluster's outbound IP address
+  - Configure API access: https://www.reg.ru/user/account/#/settings/api/
 
-# REG.RU DNS provider allow access to API from known IP-addresses only
+## REG.RU API access
 
-Access configuration https://www.reg.ru/user/account/#/settings/api/
+REG.RU restricts API access to allowlisted IP addresses. Before deploying the webhook, add your cluster's outbound IP to the allowlist in your REG.RU account settings.
 
-Configure API access from your IP-address or you can see something like this message:
+API documentation: https://www.reg.ru/reseller/api2doc#common
+
+If access is not configured, calls to the REG.RU API will fail with:
 
 ```json
 {
@@ -24,25 +30,32 @@ Configure API access from your IP-address or you can see something like this mes
 }
 ```
 
-## Creating secret with REG.RU API credentials
-Create kubernetes secret with credentials:
+## Installation
 
-```
-kubectl --namespace cert-manager create secret generic regru-api-creds --from-literal=login='<your-username>' --from-literal=password='<your-password>'
-```
+### 1. Create the credentials secret
 
-One can use any suitable way https://kubernetes.io/docs/tasks/configmap-secret/
+Create a Kubernetes secret with your REG.RU login and password in the `cert-manager` namespace:
 
-## Creating your own webhook
-Deploy webhook from this repository using `helm` utility:
-
-```
-git clone https://github.com/daloman/cert-manager-webhook-regru.git
-
-helm --namespace cert-manager upgrade --install regru-webhook ./cert-manager-webhook-regru/deploy/helm/regru-webhook/ --set groupName="acme.regru.ru"
+```bash
+kubectl --namespace cert-manager create secret generic regru-api-creds \
+  --from-literal=login='<your-username>' \
+  --from-literal=password='<your-password>'
 ```
 
-## Creating clusterIssuer resource
+For alternative ways to create secrets, see the [Kubernetes documentation](https://kubernetes.io/docs/tasks/configmap-secret/).
+
+### 2. Deploy the webhook
+
+```bash
+git clone https://github.com/drengskapr/cert-manager-webhook-regru.git
+
+helm --namespace cert-manager upgrade --install regru-webhook \
+  ./cert-manager-webhook-regru/deploy/helm/regru-webhook/ \
+```
+
+## Configuration
+
+Create a `ClusterIssuer` referencing the webhook:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -67,24 +80,70 @@ spec:
               name: regru-api-creds
           groupName: acme.regru.ru
           solverName: regru
-
 ```
 
-### Running the test suite
+> **Note:** The example above uses the Let's Encrypt **staging** server. For production certificates, replace the `server` value with:
+> ```
+> https://acme-v02.api.letsencrypt.org/directory
+> ```
 
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
+Once the issuer is ready, create a `Certificate` resource to request a certificate:
 
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-com
+  namespace: default
+spec:
+  secretName: example-com-tls
+  issuerRef:
+    name: regru-dns
+    kind: ClusterIssuer
+  dnsNames:
+  - example.com
+  - "*.example.com"
+```
 
-An example Go test file has been provided in [main_test.go](https://github.com/cert-manager/webhook-example/blob/master/main_test.go).
+## Running the test suite
 
-You can run the test suite with:
+### Unit tests
+
+`subdomain_test.go` contains fast, dependency-free unit tests and runs without any environment setup:
 
 ```bash
-$ TEST_ZONE_NAME=example.com. make test
+go test ./...
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+### Integration / conformance tests
+
+The integration test (`main_test.go`) runs the cert-manager DNS01 conformance suite against a real REG.RU zone. It requires:
+
+- A domain you control that is hosted on REG.RU
+- REG.RU API credentials with access allowed from your machine's IP
+
+**Credentials** — choose one of:
+
+1. **Environment variables (recommended):** the test writes `testdata/regru/manifests/secret.yaml` automatically:
+
+   ```bash
+   export TEST_ZONE_NAME=example.com.
+   export TEST_REGRU_LOGIN=your-login
+   export TEST_REGRU_PASSWORD=your-password
+   make test
+   ```
+
+> **Note:** trailing dot in `TEST_ZONE_NAME` is required
+
+2. **Manual secret file:** copy the example and fill in your credentials, then run without the login/password vars:
+
+   ```bash
+   cp testdata/regru/manifests/secret.yaml.example \
+      testdata/regru/manifests/secret.yaml
+   # edit secret.yaml and set login / password
+   TEST_ZONE_NAME=example.com. make test
+   ```
+
+The conformance fixture uses `1.1.1.1:53` for DNS propagation checks by default. Override with `TEST_DNS_SERVER=<host:port>` if needed.
+
+The solver config lives in [`testdata/regru/config.json`](testdata/regru/config.json).
