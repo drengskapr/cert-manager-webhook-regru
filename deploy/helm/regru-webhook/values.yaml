@@ -13,7 +13,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: daloman/cert-manager-webhook-regru
+  repository: drengskapr/cert-manager-webhook-regru
   tag: "0.3.1-beta"
   pullPolicy: IfNotPresent
 

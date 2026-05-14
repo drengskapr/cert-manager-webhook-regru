@@ -1,4 +1,4 @@
-module github.com/daloman/cert-manager-webhook-regru
+module github.com/drengskapr/cert-manager-webhook-regru
 
 go 1.26.3
 
