@@ -102,7 +102,8 @@ func (c *regruDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
-	subdomain := ch.ResolvedFQDN
+	fqdn := strings.TrimRight(ch.ResolvedFQDN, ".")
+	subdomain := strings.TrimSuffix(fqdn, "."+zone)
 	content := ch.Key
 	log.Infof("Add TXT resource record %v in zone %v", subdomain, zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
@@ -122,7 +123,8 @@ func (c *regruDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	zone := strings.TrimRight(ch.ResolvedZone, ".")
-	subdomain := ch.ResolvedFQDN
+	fqdn := strings.TrimRight(ch.ResolvedFQDN, ".")
+	subdomain := strings.TrimSuffix(fqdn, "."+zone)
 	content := ch.Key
 	log.Infof("Delete TXT resource record %v in zone %v", subdomain, zone)
 	client := regru.New(apiCredentials["login"], apiCredentials["password"])
