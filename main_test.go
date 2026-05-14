@@ -38,6 +38,7 @@ func TestConformance(t *testing.T) {
 		dns.SetManifestPath("testdata/regru"),
 		dns.SetStrict(false),
 		dns.SetDNSServer(dnsServer),
+		dns.SetUseAuthoritative(false),
 		dns.SetPropagationLimit(4*time.Minute),
 	)
 	fixture.RunConformance(t)
