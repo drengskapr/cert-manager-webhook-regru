@@ -133,6 +133,8 @@ The integration test (`main_test.go`) runs the cert-manager DNS01 conformance su
    make test
    ```
 
+> **Note:** trailing dot in `TEST_ZONE_NAME` is required
+
 2. **Manual secret file:** copy the example and fill in your credentials, then run without the login/password vars:
 
    ```bash
