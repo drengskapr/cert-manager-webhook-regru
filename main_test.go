@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	dns "github.com/cert-manager/cert-manager/test/acme"
 )
@@ -37,6 +38,7 @@ func TestConformance(t *testing.T) {
 		dns.SetManifestPath("testdata/regru"),
 		dns.SetStrict(false),
 		dns.SetDNSServer(dnsServer),
+		dns.SetPropagationLimit(4*time.Minute),
 	)
 	fixture.RunConformance(t)
 }
