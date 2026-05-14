@@ -40,6 +40,9 @@ stringData:
   login: %q
   password: %q
 `
+	if err := os.MkdirAll("testdata/regru/manifests", 0700); err != nil {
+		return err
+	}
 	return os.WriteFile(
 		"testdata/regru/manifests/secret.yaml",
 		[]byte(fmt.Sprintf(tmpl, login, password)),
