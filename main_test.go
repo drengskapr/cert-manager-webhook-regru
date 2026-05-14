@@ -26,11 +26,17 @@ func TestConformance(t *testing.T) {
 		}
 	}
 
+	dnsServer := os.Getenv("TEST_DNS_SERVER")
+	if dnsServer == "" {
+		dnsServer = "127.0.0.53:53"
+	}
+
 	fixture := dns.NewFixture(
 		&regruDNSProviderSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetManifestPath("testdata/regru"),
 		dns.SetStrict(false),
+		dns.SetDNSServer(dnsServer),
 	)
 	fixture.RunConformance(t)
 }
