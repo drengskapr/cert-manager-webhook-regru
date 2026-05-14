@@ -17,7 +17,11 @@ func TestConformance(t *testing.T) {
 	}
 
 	if login := os.Getenv("TEST_REGRU_LOGIN"); login != "" {
-		if err := writeSecretManifest(login, os.Getenv("TEST_REGRU_PASSWORD")); err != nil {
+		password := os.Getenv("TEST_REGRU_PASSWORD")
+		if password == "" {
+			t.Fatal("TEST_REGRU_LOGIN is set but TEST_REGRU_PASSWORD is empty")
+		}
+		if err := writeSecretManifest(login, password); err != nil {
 			t.Fatalf("failed to write credentials manifest: %v", err)
 		}
 	}
