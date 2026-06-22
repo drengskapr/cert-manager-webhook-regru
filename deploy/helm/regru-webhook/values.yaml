@@ -15,7 +15,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: drengskapr/cert-manager-webhook-regru
+  repository: ghcr.io/drengskapr/cert-manager-webhook-regru
   tag: ""
   pullPolicy: IfNotPresent
 
